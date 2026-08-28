@@ -1,7 +1,9 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/layouts/AppLayout";
 import { Dashboard } from "@/pages/Dashboard";
 import { Home } from "@/pages/Home";
+import { Login } from "@/pages/Login";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
 
 function App() {
@@ -9,7 +11,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route element={<AppLayout />}>
+        <Route path="login" element={<Login />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route
             path="developer"
@@ -47,6 +51,7 @@ function App() {
               />
             }
           />
+          </Route>
         </Route>
         <Route
           path="*"

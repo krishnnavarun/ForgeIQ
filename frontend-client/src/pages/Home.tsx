@@ -12,8 +12,8 @@ export function Home() {
           <Link to="/login">
             <Button variant="ghost">Log in</Button>
           </Link>
-          <Link to="/register">
-            <Button>Get Started</Button>
+          <Link to="/login">
+            <Button>Open workspace</Button>
           </Link>
         </nav>
       </header>
@@ -25,8 +25,8 @@ export function Home() {
           Transform fragmented development activity into reliable operational information and connect top developers with leading organizations.
         </p>
         <div className="flex gap-4 mt-4">
-          <Link to="/dashboard">
-            <Button size="lg">Go to Dashboard</Button>
+          <Link to="/login">
+            <Button size="lg">Sign in to ForgeIQ</Button>
           </Link>
         </div>
       </main>
