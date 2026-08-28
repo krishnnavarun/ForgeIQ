@@ -428,30 +428,80 @@ No mock data should remain in production screens.
 
 ---
 
-# Phase 16 — Recruiter-Like / Manager Candidate Discovery Is NOT Used
+# Phase 16 — Developer & Candidate Intelligence
 
-ForgeIQ is an engineering operations platform.
+## Goal
 
-Do not import the previous DevIntel recruiter/student workflow.
+Extend ForgeIQ from engineering activity analytics into a broader developer intelligence and candidate discovery platform.
 
-There is no:
+ForgeIQ should support two connected use cases:
 
-* student preference
-* recruiter candidate discovery
-* placement workflow
-* candidate ranking
+1. Developer performance intelligence
+2. Authorized candidate discovery
 
-The user model is:
+### Student / Candidate
 
-```text
-Organization
- ↓
-Engineering Team
- ↓
-Projects
- ↓
-Engineering Activity
-```
+Students can:
+
+- create a developer profile
+- connect permitted developer platforms
+- connect GitHub
+- provide skills
+- add projects
+- indicate organization/company preferences
+- control profile visibility
+- control what recruiters can access
+
+### Recruiter
+
+Authorized recruiters can:
+
+- search candidates
+- filter candidates
+- view permitted candidate information
+- compare candidates
+- shortlist candidates
+- discover candidates interested in their organization
+
+### Organization
+
+Organizations can:
+
+- manage recruiters
+- configure organization information
+- discover authorized candidates
+- view candidates who have explicitly indicated interest
+- manage organization-level permissions
+
+### Privacy
+
+Organizations must NOT automatically receive access to all candidate data.
+
+Candidate visibility must respect:
+
+- explicit consent
+- profile visibility
+- organization permissions
+- recruiter permissions
+- platform authorization rules
+
+### Candidate Discovery
+
+The filtering system must support extensible criteria such as:
+
+- skills
+- coding activity
+- GitHub activity
+- projects
+- education
+- graduation year
+- location where voluntarily provided
+- preferred organizations
+- experience
+
+Do not create arbitrary candidate productivity scores.
+
+Candidate discovery should present the underlying evidence and metrics rather than pretending that one number represents developer ability.
 
 ---
 

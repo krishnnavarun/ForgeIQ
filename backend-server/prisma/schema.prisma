@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum OrganizationMemberRole {
+  ADMIN
+  MANAGER
+  DEVELOPER
+  VIEWER
+}
+
+enum IntegrationProvider {
+  GITHUB
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum IssueState {
+  OPEN
+  CLOSED
+}
+
+enum PullRequestState {
+  OPEN
+  CLOSED
+  MERGED
+}
+
+enum MetricType {
+  PULL_REQUEST
+  ISSUE
+  COMMIT
+  REVIEW
+  PROJECT_HEALTH
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  displayName         String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  memberships         OrganizationMember[]
+  integrations        Integration[]
+  auditLogs           AuditLog[]
+  aiInsights          AIInsight[]
+}
+
+model Organization {
+  id                  String               @id @default(cuid())
+  name                String
+  slug                String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  members             OrganizationMember[]
+  projects            Project[]
+  repositories        Repository[]
+  integrations        Integration[]
+  issues              Issue[]
+  pullRequests        PullRequest[]
+  reviews             Review[]
+  commits             Commit[]
+  auditLogs           AuditLog[]
+  webhookEvents       WebhookEvent[]
+  engineeringMetrics  EngineeringMetric[]
+  aiInsights          AIInsight[]
+}
+
+model OrganizationMember {
+  id             String                 @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationMemberRole @default(DEVELOPER)
+  createdAt      DateTime               @default(now())
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Project {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repositories   Repository[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model Repository {
+  id             String        @id @default(cuid())
+  organizationId String
+  projectId      String?
+  provider       IntegrationProvider
+  externalId     String
+  name           String
+  fullName       String
+  url            String
+  isSelected     Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  issues         Issue[]
+  pullRequests   PullRequest[]
+  reviews        Review[]
+  commits        Commit[]
+  webhookEvents  WebhookEvent[]
+
+  @@unique([provider, externalId])
+  @@index([organizationId])
+}
+
+model Integration {
+  id                     String              @id @default(cuid())
+  organizationId         String
+  connectedByUserId      String
+  provider               IntegrationProvider
+  status                 IntegrationStatus   @default(CONNECTED)
+  externalAccountId      String?
+  accessTokenCiphertext  String?
+  tokenExpiresAt         DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  organization           Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connectedBy            User                @relation(fields: [connectedByUserId], references: [id])
+
+  @@unique([organizationId, provider])
+  @@index([connectedByUserId])
+}
+
+model Issue {
+  id             String       @id @default(cuid())
+  organizationId String
+  repositoryId   String
+  externalId     String
+  number         Int
+  title          String
+  state          IssueState
+  openedAt       DateTime
+  closedAt       DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository     Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, externalId])
+  @@index([organizationId, state])
+}
+
+model PullRequest {
+  id             String          @id @default(cuid())
+  organizationId String
+  repositoryId   String
+  externalId     String
+  number         Int
+  title          String
+  state          PullRequestState
+  openedAt       DateTime
+  closedAt       DateTime?
+  mergedAt       DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository     Repository      @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  reviews        Review[]
+
+  @@unique([repositoryId, externalId])
+  @@index([organizationId, state])
+}
+
+model Review {
+  id             String       @id @default(cuid())
+  organizationId String
+  repositoryId   String
+  pullRequestId  String
+  externalId     String
+  state          String
+  submittedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository     Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  pullRequest    PullRequest  @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, externalId])
+  @@index([organizationId])
+}
+
+model Commit {
+  id             String       @id @default(cuid())
+  organizationId String
+  repositoryId   String
+  externalId     String
+  message        String
+  authoredAt     DateTime
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository     Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, externalId])
+  @@index([organizationId, authoredAt])
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  actorUserId    String
+  action         String
+  resourceType   String
+  resourceId     String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor          User         @relation(fields: [actorUserId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([actorUserId])
+}
+
+model WebhookEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  repositoryId   String?
+  provider       IntegrationProvider
+  externalId     String
+  eventType      String
+  payload        Json
+  processedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository     Repository?  @relation(fields: [repositoryId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, externalId])
+  @@index([organizationId, createdAt])
+}
+
+model EngineeringMetric {
+  id             String       @id @default(cuid())
+  organizationId String
+  projectId      String?
+  metricType     MetricType
+  metricName     String
+  value          Decimal      @db.Decimal(12, 2)
+  periodStart    DateTime
+  periodEnd      DateTime
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, projectId, metricType, metricName, periodStart, periodEnd])
+  @@index([organizationId, periodStart])
+}
+
+model AIInsight {
+  id             String       @id @default(cuid())
+  organizationId String
+  createdByUserId String
+  title          String
+  summary        String
+  evidence       Json
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User         @relation(fields: [createdByUserId], references: [id])
+
+  @@index([organizationId, createdAt])
+}

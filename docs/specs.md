@@ -125,7 +125,7 @@ Responsible for:
 * engineering analytics
 * AI summaries
 
-## 4.3 Developer
+## 4.3 Developer / Candidate
 
 Responsible for:
 
@@ -134,10 +134,24 @@ Responsible for:
 * issues
 * project activity
 * personal engineering insights
+* managing developer profile
+* managing organization/company preferences
+* controlling profile visibility and privacy controls
+* permitting coding-platform integrations
 
 ## 4.4 Viewer
 
 Read-only access to permitted dashboards and project information.
+
+## 4.5 Recruiter
+
+Responsible for:
+
+* secure access
+* candidate search and filtering
+* candidate profile viewing and comparison
+* shortlisting
+* organization-based discovery
 
 ---
 
