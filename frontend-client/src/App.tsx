@@ -4,7 +4,9 @@ import { AppLayout } from "@/layouts/AppLayout";
 import { Dashboard } from "@/pages/Dashboard";
 import { Home } from "@/pages/Home";
 import { Login } from "@/pages/Login";
+import { OAuthCallback } from "@/pages/OAuthCallback";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
+import { Register } from "@/pages/Register";
 
 function App() {
   return (
@@ -12,6 +14,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
+        <Route path="oauth/callback" element={<OAuthCallback />} />
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
           <Route path="dashboard" element={<Dashboard />} />

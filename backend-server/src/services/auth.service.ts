@@ -75,6 +75,20 @@ export async function loginUser(input: LoginInput) {
   return toAuthResponse(safeUser, accessToken);
 }
 
+export async function loginWithGoogleProfile(profile: { email: string; displayName?: string }) {
+  const email = profile.email.toLowerCase();
+
+  const user =
+    (await database.user.findUnique({ where: { email }, select: safeUserSelect })) ??
+    (await database.user.create({
+      data: { email, displayName: profile.displayName },
+      select: safeUserSelect,
+    }));
+
+  const { accessToken } = await createSession(user.id);
+  return toAuthResponse(user, accessToken);
+}
+
 export async function getAuthenticatedUser(userId: string) {
   return database.user.findUnique({ where: { id: userId }, select: safeUserSelect });
 }

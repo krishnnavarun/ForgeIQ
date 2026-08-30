@@ -8,6 +8,9 @@ const environmentSchema = z.object({
   JWT_SECRET: z.string().min(32).default("forgeiq-development-secret-change-me-now"),
   JWT_ACCESS_TTL: z.string().default("15m"),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(7),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().url().default("http://localhost:5000/api/v1/auth/google/callback"),
 });
 
 export const env = environmentSchema.parse(process.env);
