@@ -44,18 +44,49 @@ enum MetricType {
   PROJECT_HEALTH
 }
 
+enum ProfileVisibility {
+  PRIVATE
+  ORGANIZATION
+  PUBLIC
+}
+
 model User {
   id                  String               @id @default(cuid())
   email               String               @unique
   displayName         String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  headline            String?
+  bio                 String?
+  location            String?
+  githubUsername      String?
+  websiteUrl          String?
+  linkedinUrl         String?
+  skills              String[]             @default([])
+  openToOpportunities Boolean              @default(false)
+  profileVisibility   ProfileVisibility    @default(PRIVATE)
   credential          UserCredential?
   sessions            AuthSession[]
   memberships         OrganizationMember[]
   integrations        Integration[]
   auditLogs           AuditLog[]
   aiInsights          AIInsight[]
+  projects            DeveloperProject[]
+}
+
+model DeveloperProject {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  projectUrl  String?
+  repoUrl     String?
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Organization {

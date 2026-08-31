@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/layouts/AppLayout";
 import { Dashboard } from "@/pages/Dashboard";
+import { Developer } from "@/pages/Developer";
 import { Home } from "@/pages/Home";
 import { Login } from "@/pages/Login";
 import { OAuthCallback } from "@/pages/OAuthCallback";
@@ -19,15 +20,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
-          <Route
-            path="developer"
-            element={
-              <PlaceholderPage
-                title="Developer Profile"
-                description="Your profile, skills, projects, and connected activity will appear here."
-              />
-            }
-          />
+          <Route path="developer" element={<Developer />} />
           <Route
             path="recruiter"
             element={

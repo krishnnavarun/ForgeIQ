@@ -62,3 +62,18 @@ export async function getCurrentUser() {
     return null;
   }
 }
+
+export async function logout() {
+  const accessToken = getAccessToken();
+  clearAccessToken();
+  if (!accessToken) return;
+
+  try {
+    await apiRequest("/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  } catch {
+    // Token is already cleared client-side; a failed revoke call is not actionable here.
+  }
+}

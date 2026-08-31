@@ -1,18 +1,45 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
-import { LayoutDashboard, User, Briefcase, Building, Settings, Menu } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  Briefcase,
+  Building,
+  ChevronDown,
+  GitBranch,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Settings,
+  User,
+} from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { getCurrentUser, logout, type AuthUser } from "@/services/auth";
+import { getMyProfile, type DeveloperProfile } from "@/services/profile";
+import { initialsOf } from "@/lib/initials";
 
-const navItems = [
+export type AppOutletContext = {
+  profile: DeveloperProfile | null;
+  loadingProfile: boolean;
+  refreshProfile: () => Promise<void>;
+};
+
+const navItems: Array<{ href: string; label: string; icon: typeof LayoutDashboard; comingSoon?: boolean }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/developer", label: "Developer Profile", icon: User },
-  { href: "/recruiter", label: "Recruiter", icon: Briefcase },
-  { href: "/organization", label: "Organization", icon: Building },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/recruiter", label: "Recruiter", icon: Briefcase, comingSoon: true },
+  { href: "/organization", label: "Organization", icon: Building, comingSoon: true },
+  { href: "/settings", label: "Settings", icon: Settings, comingSoon: true },
 ];
 
-function NavLinks({ currentPath }: { currentPath: string }) {
+function NavLinks({ currentPath, onNavigate }: { currentPath: string; onNavigate?: () => void }) {
   return (
     <>
       {navItems.map((item) => {
@@ -22,12 +49,12 @@ function NavLinks({ currentPath }: { currentPath: string }) {
           <Link
             key={item.href}
             to={item.href}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary ${
-              isActive ? "bg-muted text-primary" : "text-muted-foreground"
-            }`}
+            onClick={onNavigate}
+            className={`app-nav-item${isActive ? " is-active" : ""}`}
           >
-            <Icon className="h-4 w-4" />
+            <Icon size={17} />
             {item.label}
+            {item.comingSoon && <span className="app-nav-item-badge">Soon</span>}
           </Link>
         );
       })}
@@ -37,60 +64,120 @@ function NavLinks({ currentPath }: { currentPath: string }) {
 
 export function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<DeveloperProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  const refreshProfile = useCallback(async () => {
+    try {
+      const [currentUser, currentProfile] = await Promise.all([getCurrentUser(), getMyProfile()]);
+      if (!currentUser) {
+        navigate("/login", { replace: true });
+        return;
+      }
+      setUser(currentUser);
+      setProfile(currentProfile);
+    } catch {
+      navigate("/login", { replace: true });
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    // Initial profile/user fetch requires network I/O — there is no synchronous
+    // lazy-initializer alternative here, unlike the read-once cases elsewhere.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refreshProfile();
+  }, [refreshProfile]);
+
+  async function handleLogout() {
+    await logout();
+    navigate("/login", { replace: true });
+  }
+
+  const displayName = user?.displayName?.trim() || user?.email.split("@")[0] || "Developer";
+  const initials = user ? initialsOf(user.displayName, user.email) : "..";
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
-      {/* Sidebar - Desktop */}
-      <aside className="hidden border-r bg-muted/40 md:flex md:w-64 md:flex-col">
-        <div className="flex h-14 items-center border-b px-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold text-lg tracking-tight">
-            ForgeIQ
-          </Link>
-        </div>
-        <div className="flex-1 overflow-auto py-4">
-          <nav className="grid items-start px-4 text-sm font-medium gap-1">
-            <NavLinks currentPath={location.pathname} />
-          </nav>
+    <div className="app-shell">
+      <aside className="app-sidebar">
+        <Link to="/" className="app-sidebar-brand">
+          <span className="brand-mark"><GitBranch size={17} strokeWidth={2.5} /></span>
+          ForgeIQ
+        </Link>
+        <nav className="app-nav">
+          <span className="app-nav-label">Workspace</span>
+          <NavLinks currentPath={location.pathname} />
+        </nav>
+        <div className="app-sidebar-foot">
+          <div className="app-plan-card">
+            <p>Developer intelligence, Phase 4</p>
+            <p>Evidence-led profile building is live. GitHub sync and analytics unlock in later phases.</p>
+          </div>
         </div>
       </aside>
-      
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 h-screen">
-        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:px-6">
+
+      <div className="app-main">
+        <header className="app-topbar">
           <Sheet>
             <SheetTrigger
-              render={
-                <Button variant="outline" size="icon" className="shrink-0 md:hidden" />
-              }
+              render={<Button variant="outline" size="icon" className="app-topbar-menu-btn" />}
             >
-              <Menu className="h-5 w-5" />
+              <Menu size={18} />
               <span className="sr-only">Toggle navigation menu</span>
             </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
-              <div className="flex items-center gap-2 font-semibold text-lg tracking-tight mb-4">
+            <SheetContent side="left" className="flex flex-col p-0">
+              <div className="app-sidebar-brand">
+                <span className="brand-mark"><GitBranch size={17} strokeWidth={2.5} /></span>
                 ForgeIQ
               </div>
-              <nav className="grid gap-2 text-lg font-medium">
+              <nav className="app-nav">
                 <NavLinks currentPath={location.pathname} />
               </nav>
             </SheetContent>
           </Sheet>
-          <div className="w-full flex-1 md:hidden">
-            <Link to="/" className="flex items-center gap-2 font-semibold text-lg tracking-tight">
-              ForgeIQ
-            </Link>
-          </div>
-          <div className="hidden md:flex flex-1" />
-          <div className="flex items-center gap-4">
-             <Avatar className="h-8 w-8">
-               <AvatarFallback>U</AvatarFallback>
-             </Avatar>
-          </div>
+
+          <Link to="/" className="app-topbar-mobile-brand">
+            <span className="brand-mark"><GitBranch size={17} strokeWidth={2.5} /></span>
+            ForgeIQ
+          </Link>
+
+          <div className="app-topbar-spacer" />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<button className="app-user-trigger" type="button" />}>
+              <span className="app-user-trigger-avatar">{initials}</span>
+              <span className="app-user-trigger-text">
+                <span className="app-user-trigger-name">{displayName}</span>
+                <span className="app-user-trigger-email">{user?.email ?? ""}</span>
+              </span>
+              <ChevronDown size={15} className="chev" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={8}>
+              <DropdownMenuLabel>Signed in as {user?.email}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/developer")}>
+                <User size={15} /> Developer profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
+                <Settings size={15} /> Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                <LogOut size={15} /> Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
-        <div className="flex-1 p-4 lg:p-8 overflow-auto">
-          <Outlet />
+
+        <div className="app-content">
+          <div className="app-content-inner">
+            <Outlet context={{ profile, loadingProfile, refreshProfile } satisfies AppOutletContext} />
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
