@@ -1,7 +1,9 @@
 import { type FormEvent, useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase,
+  Building2,
   Check,
   Eye,
   FolderGit2,
@@ -29,6 +31,8 @@ import {
   type ProfileVisibility,
   type ProjectPatch,
 } from "@/services/profile";
+import { expressInterest, listMyInterests, withdrawInterest } from "@/services/candidates";
+import { listOrganizationDirectory } from "@/services/organizations";
 
 type ProfileForm = {
   displayName: string;
@@ -65,6 +69,18 @@ function errorMessage(error: unknown, fallback: string) {
 
 export function Developer() {
   const { profile, loadingProfile, refreshProfile } = useOutletContext<AppOutletContext>();
+  const queryClient = useQueryClient();
+  const [orgSearch, setOrgSearch] = useState("");
+
+  const directoryQuery = useQuery({ queryKey: ["organization-directory"], queryFn: listOrganizationDirectory });
+  const interestsQuery = useQuery({ queryKey: ["my-interests"], queryFn: listMyInterests });
+  const interestedIds = new Set((interestsQuery.data ?? []).map((org) => org.id));
+
+  const interestMutation = useMutation({
+    mutationFn: (input: { organizationId: string; interested: boolean }) =>
+      input.interested ? withdrawInterest(input.organizationId) : expressInterest(input.organizationId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-interests"] }),
+  });
 
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<ProfileForm | null>(null);
@@ -510,6 +526,50 @@ export function Developer() {
               aria-pressed={isEditing && form ? form.openToOpportunities : profile.openToOpportunities}
               aria-label="Toggle open to opportunities"
             />
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <div className="panel-head-text">
+            <h2><Building2 size={16} style={{ display: "inline", verticalAlign: -2, marginRight: 6 }} />Organizations you're interested in</h2>
+            <p>Only orgs you mark here can see your profile if it's set to "Organizations" visibility.</p>
+          </div>
+        </div>
+        <div className="panel-body">
+          <input
+            className="app-input"
+            style={{ maxWidth: 280, marginBottom: 12 }}
+            placeholder="Search organizations…"
+            value={orgSearch}
+            onChange={(event) => setOrgSearch(event.target.value)}
+          />
+          <div className="row-list">
+            {(directoryQuery.data ?? [])
+              .filter((org) => org.name.toLowerCase().includes(orgSearch.toLowerCase()))
+              .slice(0, 12)
+              .map((org) => {
+                const interested = interestedIds.has(org.id);
+                return (
+                  <div className="row-item" key={org.id}>
+                    <span className="row-item-avatar">{org.name.slice(0, 1).toUpperCase()}</span>
+                    <div className="row-item-main">
+                      <div className="row-item-title">{org.name}</div>
+                      {org.description && <div className="row-item-sub">{org.description}</div>}
+                    </div>
+                    <button
+                      type="button"
+                      className={interested ? "btn-primary btn-sm" : "btn-outline btn-sm"}
+                      onClick={() => interestMutation.mutate({ organizationId: org.id, interested })}
+                    >
+                      {interested ? <Check size={13} /> : <Plus size={13} />}
+                      {interested ? "Interested" : "Show interest"}
+                    </button>
+                  </div>
+                );
+              })}
+            {directoryQuery.data?.length === 0 && <p style={{ color: "var(--muted)", fontSize: ".86rem" }}>No organizations exist yet.</p>}
           </div>
         </div>
       </section>

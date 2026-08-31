@@ -11,6 +11,13 @@ const environmentSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().url().default("http://localhost:5000/api/v1/auth/google/callback"),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GITHUB_REDIRECT_URI: z.string().url().default("http://localhost:5000/api/v1/organizations/integrations/github/callback"),
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
+  TOKEN_ENCRYPTION_KEY: z.string().min(32).default("forgeiq-development-token-key-change-me!!"),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default("claude-sonnet-5"),
 });
 
 export const env = environmentSchema.parse(process.env);

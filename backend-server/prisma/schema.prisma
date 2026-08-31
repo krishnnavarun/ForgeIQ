@@ -13,6 +13,14 @@ enum OrganizationMemberRole {
   MANAGER
   DEVELOPER
   VIEWER
+  RECRUITER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
 }
 
 enum IntegrationProvider {
@@ -72,6 +80,10 @@ model User {
   auditLogs           AuditLog[]
   aiInsights          AIInsight[]
   projects            DeveloperProject[]
+  sentInvites         OrganizationInvite[]      @relation("InviteSender")
+  candidateInterests  OrganizationCandidateInterest[]
+  shortlistedBy       CandidateShortlist[]      @relation("ShortlistCandidate")
+  shortlistsAdded     CandidateShortlist[]      @relation("ShortlistAddedBy")
 }
 
 model DeveloperProject {
@@ -93,6 +105,7 @@ model Organization {
   id                  String               @id @default(cuid())
   name                String
   slug                String               @unique
+  description         String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   members             OrganizationMember[]
@@ -107,6 +120,54 @@ model Organization {
   webhookEvents       WebhookEvent[]
   engineeringMetrics  EngineeringMetric[]
   aiInsights          AIInsight[]
+  invites             OrganizationInvite[]
+  candidateInterests  OrganizationCandidateInterest[]
+  shortlist           CandidateShortlist[]
+}
+
+model OrganizationInvite {
+  id             String                 @id @default(cuid())
+  organizationId String
+  email          String
+  role           OrganizationMemberRole @default(DEVELOPER)
+  token          String                 @unique
+  status         InviteStatus           @default(PENDING)
+  invitedByUserId String
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime               @default(now())
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy      User                   @relation("InviteSender", fields: [invitedByUserId], references: [id])
+
+  @@index([organizationId, status])
+  @@index([email])
+}
+
+model OrganizationCandidateInterest {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model CandidateShortlist {
+  id             String       @id @default(cuid())
+  organizationId String
+  candidateUserId String
+  addedByUserId  String
+  note           String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  candidate      User         @relation("ShortlistCandidate", fields: [candidateUserId], references: [id], onDelete: Cascade)
+  addedBy        User         @relation("ShortlistAddedBy", fields: [addedByUserId], references: [id])
+
+  @@unique([organizationId, candidateUserId])
+  @@index([organizationId])
 }
 
 model OrganizationMember {

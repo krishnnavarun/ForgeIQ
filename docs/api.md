@@ -130,30 +130,92 @@ Invalidates the authenticated session and requires a bearer token. Returns
 Returns the authenticated user and memberships without password or token
 material. Requires a bearer token.
 
-## Planned Student Endpoints
+## Developer Profile Endpoints
 
-These endpoints are planned for the student-first implementation and are not
-yet available.
+Student/developer-owned endpoints derive the user from authentication and
+scope all queries to that user. Implemented under `/users/me/*` (not the
+originally sketched top-level `/me/*`) to stay consistent with the
+resource-scoped naming used everywhere else in this API — see the note in
+the root `README.md`'s API section for the full rationale.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/me/profile` | Read the authenticated student's profile. |
-| `PUT` | `/me/profile` | Update profile details. |
-| `GET` | `/me/projects` | List the student's projects. |
-| `POST` | `/me/projects` | Create a student-owned project. |
-| `PATCH` | `/me/projects/:id` | Update an owned project. |
-| `DELETE` | `/me/projects/:id` | Delete an owned project. |
-| `GET` | `/me/privacy` | Read visibility and consent settings. |
-| `PUT` | `/me/privacy` | Update visibility and consent settings. |
-| `GET` | `/me/integrations` | List the student's integration status. |
-| `POST` | `/integrations/github/connect` | Start GitHub OAuth. |
-| `GET` | `/integrations/github/callback` | Complete GitHub OAuth. |
-| `DELETE` | `/integrations/github` | Disconnect GitHub. |
-| `GET` | `/me/activity` | Read persisted normalized activity and metrics. |
+| `GET` | `/users/me/profile` | Read the authenticated developer's profile. |
+| `PATCH` | `/users/me/profile` | Update headline, bio, location, links, skills, visibility, open-to-opportunities. |
+| `POST` | `/users/me/projects` | Create a developer-owned project entry. |
+| `PATCH` | `/users/me/projects/:projectId` | Update an owned project entry. |
+| `DELETE` | `/users/me/projects/:projectId` | Delete an owned project entry. |
 
-Student-owned endpoints derive the user from authentication and must scope
-database queries to that user. Private profile fields, projects, and activity
-must not be returned to recruiters or organizations without explicit consent.
+Profile visibility (`PRIVATE` / `ORGANIZATION` / `PUBLIC`) *is* the privacy/consent
+setting — there is no separate `/me/privacy` endpoint. Private profile fields
+are never returned to recruiters or organizations without that explicit,
+per-profile consent (see "Candidate Discovery" below).
+
+## Organization Endpoints
+
+Every `:organizationId`-scoped route below requires the caller to have a
+verified `OrganizationMember` row for that id (never inferred from the request
+body) — see `src/middleware/requireOrgRole.ts`. Roles: `ADMIN`, `MANAGER`,
+`DEVELOPER`, `VIEWER`, `RECRUITER`.
+
+| Method | Endpoint | Role required |
+| --- | --- | --- |
+| `POST` | `/organizations` | Any authenticated user (becomes ADMIN) |
+| `GET` | `/organizations` | Any authenticated user (lists their own memberships) |
+| `GET` | `/organizations/directory` | Any authenticated user (name/slug/description only) |
+| `GET` | `/organizations/:organizationId` | Member |
+| `PATCH` | `/organizations/:organizationId` | ADMIN |
+| `POST` \| `GET` `/organizations/:organizationId/invites` | ADMIN |
+| `DELETE` | `/organizations/:organizationId/invites/:inviteId` | ADMIN |
+| `POST` | `/organizations/invites/:token/accept` | Any authenticated user whose email matches the invite |
+| `PATCH` \| `DELETE` `/organizations/:organizationId/members/:userId` | ADMIN (blocked if it would remove the last admin) |
+| `GET` | `/organizations/:organizationId/audit-logs` | ADMIN, MANAGER |
+| `POST` \| `DELETE` `/organizations/:organizationId/interest` | Any authenticated user (candidate opting in/out for that org) |
+| `GET` | `/organizations/:organizationId/candidates` | ADMIN, MANAGER, RECRUITER |
+| `POST` \| `DELETE` `/organizations/:organizationId/candidates/:userId/shortlist` | ADMIN, MANAGER, RECRUITER |
+| `GET` | `/organizations/:organizationId/shortlist` | ADMIN, MANAGER, RECRUITER |
+| `GET` | `/organizations/my-interests` | Any authenticated user |
+
+## Project Endpoints (`/organizations/:organizationId/projects`)
+
+| Method | Endpoint | Role required |
+| --- | --- | --- |
+| `GET` | `/` , `/:projectId` | Member |
+| `POST` , `PATCH /:projectId` , `DELETE /:projectId` | ADMIN, MANAGER |
+
+## Repository & GitHub Integration Endpoints
+
+| Method | Endpoint | Role required |
+| --- | --- | --- |
+| `GET` | `/organizations/:organizationId/integrations` | Member |
+| `GET` | `/organizations/:organizationId/integrations/github/start` | ADMIN, MANAGER — returns `{ url }` to navigate the browser to (never redirects directly; a bearer token cannot ride a full-page navigation) |
+| `GET` | `/organizations/integrations/github/callback` | Public — GitHub redirects the browser here; identity comes from the signed OAuth state, not a bearer token |
+| `DELETE` | `/organizations/:organizationId/integrations/github` | ADMIN, MANAGER |
+| `GET` | `/organizations/:organizationId/repositories` | Member |
+| `GET` | `/organizations/:organizationId/repositories/discover` | ADMIN, MANAGER — lists permitted GitHub repos not yet tracked |
+| `POST` | `/organizations/:organizationId/repositories` | ADMIN, MANAGER — track a discovered repository |
+| `GET` | `/organizations/:organizationId/repositories/:repositoryId` | Member |
+| `GET` | `/organizations/:organizationId/repositories/:repositoryId/activity` | Member — recent commits/issues/PRs |
+| `POST` | `/organizations/:organizationId/repositories/:repositoryId/sync` | ADMIN, MANAGER — pulls commits/issues/PRs/reviews from GitHub and upserts them |
+| `DELETE` | `/organizations/:organizationId/repositories/:repositoryId` | ADMIN, MANAGER |
+
+## Analytics & AI Endpoints
+
+| Method | Endpoint | Role required |
+| --- | --- | --- |
+| `GET` | `/organizations/:organizationId/analytics?projectId=` | Member — PR/issue/commit/review metrics, engineering health signals, and bottleneck findings, all computed live from stored data (60s in-memory cache per org/project) |
+| `GET` | `/organizations/:organizationId/ai` | ADMIN, MANAGER, DEVELOPER — lists past AI insights and whether AI is configured |
+| `POST` | `/organizations/:organizationId/ai` | ADMIN, MANAGER, DEVELOPER — generates a grounded insight (`weekly_summary`, `project_summary`, `bottleneck_explanation`, or `question`); rate-limited to 10/hour per user |
+
+## Webhook Endpoint
+
+| Method | Endpoint | Auth |
+| --- | --- | --- |
+| `POST` | `/webhooks/github` | HMAC-SHA256 signature verification via `x-hub-signature-256` against `GITHUB_WEBHOOK_SECRET` — no bearer token |
+
+Handles `push`, `issues`, and `pull_request` events. Every delivery is stored
+in `WebhookEvent` (keyed by GitHub's delivery id) before being applied, so
+retried deliveries are safely ignored rather than double-applied.
 
 ## Integration Rules
 

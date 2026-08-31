@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  BarChart3,
   Briefcase,
   Building,
+  Check,
   ChevronDown,
+  FolderGit2,
   GitBranch,
   LayoutDashboard,
   LogOut,
   Menu,
+  Plus,
   Settings,
   User,
 } from "lucide-react";
@@ -24,6 +28,8 @@ import {
 import { getCurrentUser, logout, type AuthUser } from "@/services/auth";
 import { getMyProfile, type DeveloperProfile } from "@/services/profile";
 import { initialsOf } from "@/lib/initials";
+import { OrganizationProvider } from "@/context/OrganizationContext";
+import { useOrganization } from "@/context/organization-context";
 
 export type AppOutletContext = {
   profile: DeveloperProfile | null;
@@ -34,8 +40,11 @@ export type AppOutletContext = {
 const navItems: Array<{ href: string; label: string; icon: typeof LayoutDashboard; comingSoon?: boolean }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/developer", label: "Developer Profile", icon: User },
-  { href: "/recruiter", label: "Recruiter", icon: Briefcase, comingSoon: true },
-  { href: "/organization", label: "Organization", icon: Building, comingSoon: true },
+  { href: "/projects", label: "Projects", icon: FolderGit2 },
+  { href: "/repositories", label: "Repositories", icon: GitBranch },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/recruiter", label: "Recruiter", icon: Briefcase },
+  { href: "/organization", label: "Organization", icon: Building },
   { href: "/settings", label: "Settings", icon: Settings, comingSoon: true },
 ];
 
@@ -62,7 +71,46 @@ function NavLinks({ currentPath, onNavigate }: { currentPath: string; onNavigate
   );
 }
 
-export function AppLayout() {
+function OrgSwitcher() {
+  const navigate = useNavigate();
+  const { organizations, currentOrg, setCurrentOrgId, isLoading } = useOrganization();
+
+  if (isLoading) return <div className="org-switcher org-switcher-loading">Loading organizations…</div>;
+
+  if (!currentOrg) {
+    return (
+      <button type="button" className="org-switcher org-switcher-empty" onClick={() => navigate("/organization")}>
+        <Plus size={14} /> Create an organization
+      </button>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<button type="button" className="org-switcher" />}>
+        <span className="org-switcher-avatar">{currentOrg.name.slice(0, 1).toUpperCase()}</span>
+        <span className="org-switcher-name">{currentOrg.name}</span>
+        <ChevronDown size={14} className="chev" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={6}>
+        <DropdownMenuLabel>Your organizations</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {organizations.map((org) => (
+          <DropdownMenuItem key={org.id} onClick={() => setCurrentOrgId(org.id)}>
+            {org.id === currentOrg.id && <Check size={14} />}
+            {org.name}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate("/organization")}>
+          <Plus size={14} /> New / manage organizations
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -107,14 +155,17 @@ export function AppLayout() {
           <span className="brand-mark"><GitBranch size={17} strokeWidth={2.5} /></span>
           ForgeIQ
         </Link>
+        <div className="app-sidebar-org">
+          <OrgSwitcher />
+        </div>
         <nav className="app-nav">
           <span className="app-nav-label">Workspace</span>
           <NavLinks currentPath={location.pathname} />
         </nav>
         <div className="app-sidebar-foot">
           <div className="app-plan-card">
-            <p>Developer intelligence, Phase 4</p>
-            <p>Evidence-led profile building is live. GitHub sync and analytics unlock in later phases.</p>
+            <p>Developer intelligence, all phases</p>
+            <p>GitHub sync and AI insights activate automatically once GitHub/Anthropic credentials are configured.</p>
           </div>
         </div>
       </aside>
@@ -132,6 +183,9 @@ export function AppLayout() {
               <div className="app-sidebar-brand">
                 <span className="brand-mark"><GitBranch size={17} strokeWidth={2.5} /></span>
                 ForgeIQ
+              </div>
+              <div className="app-sidebar-org">
+                <OrgSwitcher />
               </div>
               <nav className="app-nav">
                 <NavLinks currentPath={location.pathname} />
@@ -179,5 +233,13 @@ export function AppLayout() {
         </div>
       </div>
     </div>
+  );
+}
+
+export function AppLayout() {
+  return (
+    <OrganizationProvider>
+      <AppShell />
+    </OrganizationProvider>
   );
 }

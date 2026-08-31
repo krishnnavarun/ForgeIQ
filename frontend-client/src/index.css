@@ -1018,3 +1018,127 @@ code {
 @media (prefers-reduced-motion: reduce) {
   .completeness-fill, .switch::after { transition: none !important; }
 }
+
+/* ================================================================
+   Organizations, projects, repositories, analytics, recruiter
+   ================================================================ */
+
+.app-sidebar-org { padding: 10px 14px 4px; }
+.org-switcher {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color .15s ease, background .15s ease;
+}
+.org-switcher:hover { border-color: var(--accent-mist-deep); background: var(--surface-mist); }
+.org-switcher-avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--violet), var(--accent));
+  font-size: .74rem;
+  font-weight: 750;
+}
+.org-switcher-name { flex: 1; overflow: hidden; color: var(--ink); font-size: .84rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.org-switcher svg.chev { flex-shrink: 0; color: #9aa3b8; }
+.org-switcher-loading, .org-switcher-empty { color: var(--muted); font-size: .8rem; font-weight: 650; justify-content: center; }
+.org-switcher-empty { color: var(--accent-dark); border-style: dashed; }
+
+/* ---- Tables / row lists (members, invites, audit log) ---- */
+.row-list { display: flex; flex-direction: column; }
+.row-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+.row-item:last-child { border-bottom: 0; }
+.row-item-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--violet));
+  font-size: .74rem;
+  font-weight: 750;
+}
+.row-item-main { flex: 1; min-width: 0; }
+.row-item-title { color: var(--ink); font-size: .87rem; font-weight: 700; }
+.row-item-sub { color: var(--muted); font-size: .78rem; }
+.row-item-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.role-select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 650;
+}
+
+/* ---- Bottleneck / severity cards ---- */
+.bottleneck-list { display: flex; flex-direction: column; gap: 10px; }
+.bottleneck-card { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); }
+.bottleneck-card.sev-warning { border-color: #f3d9a8; background: #fffaf0; }
+.bottleneck-card.sev-critical { border-color: #f3c3c3; background: #fff3f2; }
+.bottleneck-icon { flex-shrink: 0; color: var(--muted); margin-top: 1px; }
+.bottleneck-card.sev-warning .bottleneck-icon { color: #b8862f; }
+.bottleneck-card.sev-critical .bottleneck-icon { color: var(--danger); }
+.bottleneck-message { color: var(--ink); font-size: .87rem; font-weight: 650; line-height: 1.5; }
+.bottleneck-evidence { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.bottleneck-evidence span { padding: 3px 9px; border-radius: 999px; background: var(--surface-mist); color: var(--muted); font-size: .72rem; font-weight: 650; }
+
+/* ---- Charts ---- */
+.chart-card { padding: 4px; }
+.chart-legend { display: flex; align-items: center; gap: 16px; margin-top: 8px; color: var(--muted); font-size: .76rem; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; }
+
+/* ---- Health signal grid ---- */
+.health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.health-signal { padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); text-align: center; }
+.health-signal-value { font-size: 1.6rem; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.health-signal-label { margin-top: 2px; color: var(--muted); font-size: .78rem; font-weight: 650; }
+.health-signal-hint { margin-top: 6px; color: #9aa3b8; font-size: .72rem; line-height: 1.4; }
+
+/* ---- Candidate cards (recruiter) ---- */
+.candidate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.candidate-card { display: flex; flex-direction: column; gap: 10px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.candidate-card-head { display: flex; align-items: center; gap: 10px; }
+.candidate-card-name { color: var(--ink); font-size: .92rem; font-weight: 750; }
+.candidate-card-headline { color: var(--muted); font-size: .78rem; }
+.candidate-card-bio { color: var(--text); font-size: .82rem; line-height: 1.5; }
+
+/* ---- Search bar ---- */
+.search-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.search-row .app-input { max-width: 260px; }
+
+/* ---- Simple modal-like inline card form ---- */
+.inline-form { display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px dashed var(--border); border-radius: 14px; background: var(--surface-mist); }
+
+/* ---- AI panel (reuses landing .ai-panel look for the real feature) ---- */
+.ai-panel-app { padding: 22px; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(165deg, #fff 0%, var(--surface-mist) 100%); }
+.ai-panel-app textarea { min-height: 60px; }
+.ai-insight-card { padding: 16px; border-radius: 12px; background: #fff; border: 1px solid var(--border); }
+.ai-insight-title { color: var(--accent-dark); font-size: .82rem; font-weight: 750; text-transform: capitalize; }
+.ai-insight-summary { margin-top: 6px; color: var(--text); font-size: .87rem; line-height: 1.6; white-space: pre-wrap; }
+.ai-insight-time { margin-top: 8px; color: #9aa3b8; font-size: .72rem; }

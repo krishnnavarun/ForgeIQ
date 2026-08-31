@@ -1,24 +1,41 @@
 import { useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Briefcase,
+  Building2,
   CheckCircle2,
   Circle,
   FolderGit2,
   GitBranch,
-  Sparkles,
   Tags,
   User,
 } from "lucide-react";
 import type { AppOutletContext } from "@/layouts/AppLayout";
 import { computeCompleteness } from "@/lib/profileCompleteness";
+import { useOrganization } from "@/context/organization-context";
+import { getIntegrations, listRepositories } from "@/services/repositories";
 
 export function Dashboard() {
   const { profile, loadingProfile } = useOutletContext<AppOutletContext>();
+  const { currentOrg } = useOrganization();
   const completeness = useMemo(() => (profile ? computeCompleteness(profile) : null), [profile]);
   const firstName = (profile?.displayName?.trim() || profile?.email.split("@")[0] || "there").split(" ")[0];
+
+  const integrationsQuery = useQuery({
+    queryKey: ["integrations", currentOrg?.id],
+    queryFn: () => getIntegrations(currentOrg?.id as string),
+    enabled: Boolean(currentOrg),
+  });
+  const repositoriesQuery = useQuery({
+    queryKey: ["repositories", currentOrg?.id],
+    queryFn: () => listRepositories(currentOrg?.id as string),
+    enabled: Boolean(currentOrg),
+  });
+  const githubIntegration = integrationsQuery.data?.integrations.find((i) => i.provider === "GITHUB");
+  const githubConnected = githubIntegration?.status === "CONNECTED";
 
   return (
     <>
@@ -58,9 +75,9 @@ export function Dashboard() {
         <div className="stat-card">
           <span className="stat-card-icon"><GitBranch size={19} /></span>
           <div>
-            <div className="stat-card-value">0</div>
+            <div className="stat-card-value">{currentOrg ? (repositoriesQuery.data?.length ?? "—") : 0}</div>
             <div className="stat-card-label">Repositories connected</div>
-            <p className="stat-card-hint">GitHub integration arrives in a later phase.</p>
+            <p className="stat-card-hint">{currentOrg ? "In your current organization." : "Create an organization to connect GitHub."}</p>
           </div>
         </div>
         <div className="stat-card">
@@ -108,22 +125,37 @@ export function Dashboard() {
         <section className="panel">
           <div className="panel-head">
             <div className="panel-head-text">
-              <h2>Connect GitHub</h2>
+              <h2>GitHub</h2>
               <p>Bring real commits, PRs, and reviews into ForgeIQ.</p>
             </div>
-            <span className="coming-soon">Coming soon</span>
+            {!integrationsQuery.data?.githubConfigured && <span className="coming-soon">Not configured</span>}
           </div>
-          <div className="empty-state">
-            <span className="empty-state-icon"><GitBranch size={22} /></span>
-            <h3>No repositories connected yet</h3>
-            <p>
-              GitHub OAuth and synchronization ship in a later development phase. For now, showcase your
-              work manually on your developer profile.
-            </p>
-            <Link to="/developer" className="btn-outline">
-              <Sparkles size={15} /> Add a project manually
-            </Link>
-          </div>
+          {!currentOrg ? (
+            <div className="empty-state">
+              <span className="empty-state-icon"><Building2 size={22} /></span>
+              <h3>No organization yet</h3>
+              <p>GitHub connects at the organization level. Create one to get started.</p>
+              <Link to="/organization" className="btn-primary">Go to Organization</Link>
+            </div>
+          ) : githubConnected ? (
+            <div className="empty-state">
+              <span className="empty-state-icon"><GitBranch size={22} /></span>
+              <h3>Connected</h3>
+              <p>{repositoriesQuery.data?.length ?? 0} repositories tracked for {currentOrg.name}.</p>
+              <Link to="/repositories" className="btn-outline">Manage repositories</Link>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <span className="empty-state-icon"><GitBranch size={22} /></span>
+              <h3>Not connected yet</h3>
+              <p>
+                {integrationsQuery.data?.githubConfigured
+                  ? "Connect an authorized GitHub account to start synchronizing engineering data."
+                  : "GitHub isn't configured on this server yet — set GITHUB_CLIENT_ID/SECRET to enable it."}
+              </p>
+              <Link to="/organization" className="btn-outline">Go to Organization</Link>
+            </div>
+          )}
         </section>
       </div>
 

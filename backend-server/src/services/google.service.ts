@@ -1,37 +1,23 @@
-import { randomUUID } from "node:crypto";
 import { env } from "../config/env.js";
 import { AppError } from "../utils/AppError.js";
+import { createOAuthStateStore } from "./oauthState.service.js";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 
-const STATE_TTL_MS = 5 * 60 * 1000;
-const pendingStates = new Map<string, number>();
-
-function pruneExpiredStates() {
-  const now = Date.now();
-  for (const [state, expiresAt] of pendingStates) {
-    if (expiresAt <= now) pendingStates.delete(state);
-  }
-}
+const stateStore = createOAuthStateStore<true>();
 
 export function isGoogleAuthConfigured() {
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 }
 
 export function createOAuthState() {
-  pruneExpiredStates();
-  const state = randomUUID();
-  pendingStates.set(state, Date.now() + STATE_TTL_MS);
-  return state;
+  return stateStore.create(true);
 }
 
 export function consumeOAuthState(state: unknown) {
-  if (typeof state !== "string" || !state) return false;
-  const expiresAt = pendingStates.get(state);
-  pendingStates.delete(state);
-  return typeof expiresAt === "number" && expiresAt > Date.now();
+  return stateStore.consume(state) === true;
 }
 
 export function buildGoogleAuthUrl(state: string) {
